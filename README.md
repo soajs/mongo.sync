@@ -1,6 +1,6 @@
 # mongo sync
 
-To clone in real time using mongo stream a cluter into another cluster with the option to chnage the databanse name and teh collection name.
+To clone in real time using mongo stream a cluster into another cluster with the option to change the database name and the collection name.
 
 ## How to run it
 
