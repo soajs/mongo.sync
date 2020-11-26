@@ -60,6 +60,7 @@ function get_stream(collection, cb) {
 
 function run_stream(collection, stream, cb) {
 	stream.on("change", change => {
+		stream.pause();
 		if (change.operationType === "delete") {
 			bl.destination._delete({
 				"colName": collection.d.colName || change.ns.coll,
@@ -71,6 +72,7 @@ function run_stream(collection, stream, cb) {
 					stream.close();
 					return cb(null, "restart");
 				} else {
+					stream.resume();
 					console.debug("Stream operationType [" + change.operationType + "] with id [" + change.documentKey._id + "]", "succeeded with status code", response.statusCode);
 					bl.token.save(change._id, collection.s.dbName + "_" + collection.s.colName + "_TOKEN_ID", (err) => {
 						if (err) {
@@ -91,6 +93,7 @@ function run_stream(collection, stream, cb) {
 					stream.close();
 					return cb(null, "restart");
 				} else {
+					stream.resume();
 					console.debug("Stream operationType [" + change.operationType + "] with id [" + change.documentKey._id + "]", "succeeded with status code", response.statusCode);
 					bl.token.save(change._id, collection.s.dbName + "_" + collection.s.colName + "_TOKEN_ID", (err) => {
 						if (err) {
@@ -100,6 +103,7 @@ function run_stream(collection, stream, cb) {
 				}
 			});
 		} else {
+			stream.resume();
 			console.error("Unknown operationType", change.operationType)
 		}
 	});
