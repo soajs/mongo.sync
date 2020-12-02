@@ -31,7 +31,7 @@ let bl = {
 			}
 			bl[blName].mongoClient = new mongo(options[blName]);
 			bl[blName].mongoClient.init((err) => {
-				return cb(err, blName);
+				return cb(err);
 			});
 		};
 		async.each(BLs, fillModels, function (err) {

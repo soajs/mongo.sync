@@ -136,9 +136,9 @@ function execute(collection) {
 }
 
 if (options && options.collections) {
-	bl.init(options, (err, blName) => {
+	bl.init(options, (err) => {
 		if (err) {
-			console.error('Error: ' + blName + ' - ', err.message);
+			console.error('Error:', err.message);
 		} else {
 			for (let i = 0; i < options.collections.length; i++) {
 				setImmediate(() => {
