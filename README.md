@@ -23,7 +23,7 @@ SOAJS_MONGO_SYNC_DEBUG | 0 = turned off, 1 = turned on | 0
 SOAJS_MONGO_SYNC_OPTIONS | check options.js | no default, required
 
 ### Example
-by setting SOAJS_MONGO_SYNC_OPSTIME=2 and adding copy=true in options.js, all document will be copied first and sync will start from today's date
+by setting SOAJS_MONGO_SYNC_OPSTIME=1 and adding copy=true in options.js, all document will be copied first and sync will start from today's date
 
 ### License
 *Copyright SOAJS All Rights Reserved.*
