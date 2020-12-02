@@ -10,7 +10,7 @@ To clone in real time using mongo stream a cluster into another cluster with the
 
 here is a bash script example 
 ```bash
-export SOAJS_MONGO_SYNC_OPTIONS=options.js
+export SOAJS_MONGO_SYNC_OPTIONS=./options.js
 
 node main.js
 ```
@@ -18,10 +18,12 @@ node main.js
 ### Environment variables
 ENV Variable | Description | Default
 --- | ----- | :---:
-SOAJS_MONGO_SYNC_OPSTIME | 0 = turned off, 1 = get time from ops col, 2 = use time from options | 0
+SOAJS_MONGO_SYNC_OPSTIME | 0 = turned off, 1 = start from today, 2 = use time from options | 0
 SOAJS_MONGO_SYNC_DEBUG | 0 = turned off, 1 = turned on | 0
 SOAJS_MONGO_SYNC_OPTIONS | check options.js | no default, required
 
+### Example
+by setting SOAJS_MONGO_SYNC_OPSTIME=2 and adding copy=true in options.js, all document will be copied first and sync will start from today's date
 
 ### License
 *Copyright SOAJS All Rights Reserved.*

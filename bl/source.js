@@ -78,7 +78,7 @@ let bl = {
 				if (err) {
 					return cb(err);
 				} else {
-					let timestamp = new Date(opts.date);
+					let timestamp = new Date(opts.time);
 					let hexSeconds = Math.floor(timestamp / 1000).toString(16);
 					let _id_cutoff = Mongo.ObjectId(hexSeconds + "0000000000000000");
 					let condition = {_id: {$lt: _id_cutoff}};
