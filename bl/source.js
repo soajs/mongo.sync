@@ -60,11 +60,30 @@ let bl = {
 					let options = {"fullDocument": "updateLookup"};
 					if (opts.token) {
 						options.startAfter = opts.token;
-					} else if (opts.firstOp) {
-						options.startAtOperationTime = opts.firstOp;
+					} else if (opts.time) {
+						options.startAtOperationTime = opts.time;
 					}
 					let stream = col.watch(pipeline, options);
 					return cb(null, stream);
+				}
+			});
+		} else {
+			return cb(new Error("Unable to find mongo client!"));
+		}
+	},
+	"_clone_count": (opts, cb) => {
+		if (bl.mongoClient) {
+			bl.mongoClient.getCol(opts, (err, col) => {
+				if (err) {
+					return cb(err);
+				} else {
+					let timestamp = new Date(opts.time);
+					let hexSeconds = Math.floor(timestamp / 1000).toString(16);
+					let _id_cutoff = Mongo.ObjectId(hexSeconds + "0000000000000000");
+					let condition = {_id: {$lt: _id_cutoff}};
+					col.countDocuments(condition, null, (err, count) => {
+						return cb(err, count);
+					});
 				}
 			});
 		} else {
@@ -82,7 +101,7 @@ let bl = {
 					let hexSeconds = Math.floor(timestamp / 1000).toString(16);
 					let _id_cutoff = Mongo.ObjectId(hexSeconds + "0000000000000000");
 					let condition = {_id: {$lt: _id_cutoff}};
-					let stream = col.find(condition).transformStream();
+					let stream = col.find(condition);
 					return cb(null, stream);
 				}
 			});

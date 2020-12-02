@@ -12,7 +12,7 @@ if (!process.env.SOAJS_MONGO_SYNC_OPTIONS) {
 	throw new Error('You must set SOAJS_MONGO_SYNC_OPTIONS environment variable to point to an options.js file');
 }
 
-// 0 = turned off, 1 = start from today, 2 = use time from options
+// 0 = turned off, 1 = start from yesterday, 2 = use time from options
 let mongo_opsTime = process.env.SOAJS_MONGO_SYNC_OPSTIME || "0";
 // 0 = turned off, 1 = turned on
 let logger_debug = process.env.SOAJS_MONGO_SYNC_DEBUG || "0";
@@ -30,10 +30,12 @@ function get_time(cb) {
 	if (mongo_opsTime === "0") {
 		return cb(null, null);
 	} else if (mongo_opsTime === "1") {
-		let d = new Date();
-		let month = '' + (d.getMonth() + 1);
-		let day = '' + d.getDate();
-		let year = d.getFullYear();
+		const today = new Date();
+		const yesterday = new Date(today);
+		yesterday.setDate(yesterday.getDate() - 1);
+		let month = '' + (yesterday.getMonth() + 1);
+		let day = '' + yesterday.getDate();
+		let year = yesterday.getFullYear();
 		if (month.length < 2) {
 			month = '0' + month;
 		}
@@ -135,7 +137,7 @@ function execute_sync(collection) {
 	get_sync_stream(collection, (err, stream) => {
 		if (err) {
 			_log._error('Error sync:', err.message);
-			_log._debug("Will try to execute sync again after " + tryAfter + " ms");
+			_log._info("Will try to execute sync again after " + tryAfter + " ms");
 			setTimeout(() => {
 				execute_sync(collection);
 			}, tryAfter);
@@ -172,18 +174,24 @@ function get_copy_stream(collection, cb) {
 				}
 				opts.time = time;
 				_log._debug("Starting copy from: " + collection.s.dbName + " " + collection.s.colName, "To: " + collection.d.dbName + " " + collection.d.colName);
-				bl.source._clone(opts, (err, stream) => {
+				bl.source._clone_count(opts, (err, count) => {
 					if (err) {
 						return cb(err, null);
 					}
-					return cb(null, stream)
+					bl.source._clone(opts, (err, stream) => {
+						if (err) {
+							return cb(err, null);
+						}
+						return cb(null, stream, count)
+					});
 				});
 			});
 		}
 	});
 }
 
-function run_copy_stream(collection, stream, cb) {
+function run_copy_stream(collection, stream, count, cb) {
+	let counter = 0;
 	stream.on("data", function (data) {
 		stream.pause();
 		bl.destination._upsert({
@@ -199,6 +207,10 @@ function run_copy_stream(collection, stream, cb) {
 			}
 			_log._debug("Copy doc with id [" + data._id + "]", "succeeded with status code", response.statusCode);
 			stream.resume();
+			++counter;
+			if (count === counter) {
+				_log._info("Copy success for " + collection.d.dbName + "." + collection.d.colName + ": " + count + " of " + counter);
+			}
 		});
 	});
 	stream.on("error", function (err) {
@@ -214,10 +226,10 @@ function run_copy_stream(collection, stream, cb) {
 }
 
 function execute_copy(collection, cb) {
-	get_copy_stream(collection, (err, stream) => {
+	get_copy_stream(collection, (err, stream, count) => {
 		if (err) {
 			_log._error('Error copy:', err.message);
-			_log._debug("Will try to execute copy again after " + tryAfter + " ms");
+			_log._info("Will try to execute copy again after " + tryAfter + " ms");
 			setTimeout(() => {
 				execute_copy(collection, cb);
 			}, tryAfter);
@@ -225,7 +237,7 @@ function execute_copy(collection, cb) {
 			if (!stream) {
 				return cb();
 			}
-			run_copy_stream(collection, stream, (err, action) => {
+			run_copy_stream(collection, stream, count, (err, action) => {
 				if (err) {
 					_log._error('Error copy:', err.message);
 				}
