@@ -14,10 +14,14 @@ if (!process.env.SOAJS_MONGO_SYNC_OPTIONS) {
 
 // 0 = turned off, 1 = get time from ops col, 2 = use time from options
 let mongo_opsTime = process.env.SOAJS_MONGO_SYNC_OPSTIME || "0";
+// 0 = turned off, 1 = turned on
+let logger_debug = process.env.SOAJS_MONGO_SYNC_DEBUG || "0";
 
 const options = require(process.env.SOAJS_MONGO_SYNC_OPTIONS);
+const Logger = require("./lib/logger.js");
+let _log = new Logger({"debug": logger_debug});
 
-const tryAfter = 10000;
+const tryAfter = 60000;
 const upsert = ["insert", "update", "replace"];
 const Timestamp = require('mongodb').Timestamp;
 const bl = require("./bl/index.js");
@@ -35,16 +39,15 @@ function get_opts(token, collection, cb) {
 			return cb(null, opts);
 		}
 		bl.source.opsTime({"colName": "oplog.rs", "dbName": "local"}, (err, times) => {
-			console.log(times);
 			if (err) {
-				console.debug("Unable to find oplog.rs time, using default time: " + options.firstOpTime);
+				_log._debug("Unable to find oplog.rs time, using default time: " + options.firstOpTime);
 				opts.firstOp = new Timestamp(1, new Date(options.firstOpTime).getTime() / 1000);
 				return cb(null, opts);
-			} else if (times){
+			} else if (times) {
 				opts.firstOp = times[0].ts;
 				return cb(null, opts);
 			} else {
-				console.debug("Unable to find oplog.rs time, skipping startAtOperationTime...");
+				_log._debug("Unable to find oplog.rs time, skipping startAtOperationTime...");
 				return cb(null, opts);
 			}
 		});
@@ -60,6 +63,8 @@ function get_stream(collection, cb) {
 			if (err) {
 				return cb(err);
 			}
+			_log._debug("Starting sync .....");
+			_log._debug(opts);
 			bl.source._stream(opts, (err, stream) => {
 				if (err) {
 					return cb(err);
@@ -80,15 +85,15 @@ function run_stream(collection, stream, cb) {
 				"id": change.documentKey._id
 			}, (error, response) => {
 				if (error) {
-					console.error('Error:', "Stream operationType [" + change.operationType + "] id [" + change.documentKey._id + "] failed with error: ", error.message);
+					_log._error('Error:', "Stream operationType [" + change.operationType + "] id [" + change.documentKey._id + "] failed with error: ", error.message);
 					stream.close();
 					return cb(null, "restart");
 				} else {
 					stream.resume();
-					console.debug("Stream operationType [" + change.operationType + "] with id [" + change.documentKey._id + "]", "succeeded with status code", response.statusCode);
+					_log._debug("Stream operationType [" + change.operationType + "] with id [" + change.documentKey._id + "]", "succeeded with status code", response.statusCode);
 					bl.token.save(change._id, collection.s.dbName + "_" + collection.s.colName + "_TOKEN_ID", (err) => {
 						if (err) {
-							console.error('Error:', err.message);
+							_log._error('Error:', err.message);
 						}
 					});
 				}
@@ -101,48 +106,105 @@ function run_stream(collection, stream, cb) {
 				"body": change.fullDocument
 			}, (error, response) => {
 				if (error) {
-					console.error('Error:', "Stream operationType [" + change.operationType + "] id [" + change.documentKey._id + "] failed with error: ", error.message);
+					_log._error('Error:', "Stream operationType [" + change.operationType + "] id [" + change.documentKey._id + "] failed with error: ", error.message);
 					stream.close();
 					return cb(null, "restart");
 				} else {
 					stream.resume();
-					console.debug("Stream operationType [" + change.operationType + "] with id [" + change.documentKey._id + "]", "succeeded with status code", response.statusCode);
+					_log._debug("Stream operationType [" + change.operationType + "] with id [" + change.documentKey._id + "]", "succeeded with status code", response.statusCode);
 					bl.token.save(change._id, collection.s.dbName + "_" + collection.s.colName + "_TOKEN_ID", (err) => {
 						if (err) {
-							console.error('Error:', err.message);
+							_log._error('Error:', err.message);
 						}
 					});
 				}
 			});
 		} else {
 			stream.resume();
-			console.error("Unknown operationType", change.operationType)
+			_log._error("Unknown operationType", change.operationType)
 		}
 	});
 	stream.on("error", error => {
-		console.error('Error:', error.message);
+		_log._error('Error:', error.message);
 		stream.close();
 		return cb(null, "restart");
 	});
 }
 
-function execute(collection) {
+function execute_sync(collection) {
 	get_stream(collection, (err, stream) => {
 		if (err) {
-			console.error('Error:', err.message);
-			console.debug("Will try to execute again after " + tryAfter + " ms");
+			_log._error('Error:', err.message);
+			_log._debug("Will try to execute sync again after " + tryAfter + " ms");
 			setTimeout(() => {
-				execute(collection);
+				execute_sync(collection);
 			}, tryAfter);
 		} else {
 			run_stream(collection, stream, (err, action) => {
 				if (err) {
-					console.error('Error:', err.message);
+					_log._error('Error:', err.message);
 				}
 				if (action === "restart") {
-					execute(collection);
+					execute_sync(collection);
 				}
 			});
+		}
+	});
+}
+
+function execute_copy(collection, cb) {
+	bl.token.get(collection.s.dbName + "_" + collection.s.colName + "_TOKEN_ID", (err, token) => {
+		if (err) {
+			_log._error('Error:', err.message);
+			_log._debug("Will try to execute copy again after " + tryAfter + " ms");
+			setTimeout(() => {
+				execute_copy(collection, cb);
+			}, tryAfter);
+		} else {
+			if (token) {
+				return cb();
+			} else {
+				bl.source._clone({
+					"date": options.firstOpTime,
+					"colName": collection.s.colName,
+					"dbName": collection.s.dbName
+				}, (err, stream) => {
+					if (err) {
+						_log._error('Error:', err.message);
+						_log._debug("Will try to execute copy again after " + tryAfter + " ms");
+						setTimeout(() => {
+							execute_copy(collection, cb);
+						}, tryAfter);
+					} else {
+						_log._debug("Starting copy from: " + collection.s.dbName + " " + collection.s.colName, "To: " + collection.d.dbName + " " + collection.d.colName);
+						stream.on("data", function (data) {
+							stream.pause();
+							bl.destination._upsert({
+								"colName": collection.d.colName,
+								"dbName": collection.d.dbName,
+								"id": data._id,
+								"body": data
+							}, (err, response) => {
+								if (err) {
+									_log._error('Error:', err.message);
+								}
+								_log._debug("Copy doc with id [" + data._id + "]", "succeeded with status code", response.statusCode);
+								stream.resume();
+							});
+						});
+						stream.on("error", function (err) {
+							stream.close();
+							_log._error('Error:', err.message);
+							return execute_copy(collection, cb);
+						});
+						
+						stream.on("end", function () {
+							_log._debug("Ending copy from: " + collection.s.dbName + " " + collection.s.colName, "To: " + collection.d.dbName + " " + collection.d.colName);
+							return cb();
+						});
+					}
+				});
+			}
 		}
 	});
 }
@@ -150,15 +212,24 @@ function execute(collection) {
 if (options && options.collections) {
 	bl.init(options, (err) => {
 		if (err) {
-			console.error('Error:', err.message);
+			_log._error('Error:', err.message);
 		} else {
 			for (let i = 0; i < options.collections.length; i++) {
-				setImmediate(() => {
-					execute(options.collections[i]);
-				});
+				let collection = options.collections[i];
+				if (collection.copy) {
+					execute_copy(collection, () => {
+						setImmediate(() => {
+							execute_sync(collection);
+						});
+					});
+				} else {
+					setImmediate(() => {
+						execute_sync(collection);
+					});
+				}
 			}
 		}
 	});
 } else {
-	console.error("Missing collections under options!");
+	_log._error("Missing collections under options!");
 }
