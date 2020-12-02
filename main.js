@@ -12,6 +12,9 @@ if (!process.env.SOAJS_MONGO_SYNC_OPTIONS) {
 	throw new Error('You must set SOAJS_MONGO_SYNC_OPTIONS environment variable to point to an options.js file');
 }
 
+// 0 = turned off, 1 = get time from ops col, 2 = use time from options
+let mongo_opsTime = process.env.SOAJS_MONGO_SYNC_OPSTIME || "0";
+
 const options = require(process.env.SOAJS_MONGO_SYNC_OPTIONS);
 
 const tryAfter = 10000;
@@ -25,14 +28,23 @@ function get_opts(token, collection, cb) {
 		opts.token = token;
 		return cb(null, opts);
 	} else {
+		if (mongo_opsTime === "0") {
+			return cb(null, opts);
+		} else if (mongo_opsTime === "2") {
+			opts.firstOp = new Timestamp(1, new Date(options.firstOpTime).getTime() / 1000);
+			return cb(null, opts);
+		}
 		bl.source.opsTime({"colName": "oplog.rs", "dbName": "local"}, (err, times) => {
 			console.log(times);
 			if (err) {
 				console.debug("Unable to find oplog.rs time, using default time: " + options.firstOpTime);
 				opts.firstOp = new Timestamp(1, new Date(options.firstOpTime).getTime() / 1000);
 				return cb(null, opts);
-			} else {
+			} else if (times){
 				opts.firstOp = times[0].ts;
+				return cb(null, opts);
+			} else {
+				console.debug("Unable to find oplog.rs time, skipping startAtOperationTime...");
 				return cb(null, opts);
 			}
 		});
