@@ -1,0 +1,6 @@
+{
+  "type": "custom",
+  "name": "mongosync",
+  "group": "Sync",
+  "description": "Synchronize two mongo db clusters"
+}
