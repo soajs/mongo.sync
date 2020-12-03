@@ -61,7 +61,7 @@ let bl = {
 				} else {
 					col.drop(null, (err, result) => {
 						return cb(err, result);
-					})
+					});
 				}
 			});
 		} else {

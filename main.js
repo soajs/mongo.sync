@@ -76,7 +76,7 @@ function get_sync_stream(collection, cb) {
 				if (err) {
 					return cb(err);
 				}
-				return cb(null, stream)
+				return cb(null, stream);
 			});
 		});
 	});
@@ -128,7 +128,7 @@ function run_sync_stream(collection, stream, cb) {
 			});
 		} else {
 			stream.resume();
-			_log._debug("Unknown operationType", change.operationType)
+			_log._debug("Unknown operationType", change.operationType);
 		}
 	});
 	stream.on("error", error => {
@@ -187,7 +187,7 @@ function get_copy_stream(collection, cb) {
 						if (err) {
 							return cb(err, null);
 						}
-						return cb(null, stream, count)
+						return cb(null, stream, count);
 					});
 				});
 			});
@@ -262,7 +262,7 @@ function execute_copy(collection, cb) {
 					"dbName": collection.d.dbName
 				}, () => {
 					_continue();
-				})
+				});
 			} else {
 				_continue();
 			}
