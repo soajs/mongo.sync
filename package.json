@@ -1,6 +1,6 @@
 {
-  "name": "mongoSync",
-  "description": "Synchronize 2 mongo clusters",
+  "name": "mongosync",
+  "description": "Synchronize two mongo db clusters",
   "version": "1.0.0",
   "author": {
     "name": "SOAJS team",
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:soajs/mongoSync.git"
+    "url": "git@github.com:soajs/mongo.sync.git"
   },
   "license": "Apache 2.0",
   "engines": {
