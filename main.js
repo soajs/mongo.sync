@@ -65,7 +65,7 @@ function get_sync_stream(collection, cb) {
 			} else if (time) {
 				opts.time = new Timestamp(1, new Date(time).getTime() / 1000);
 			}
-			_log._debug("Starting sync .....");
+			_log._info("Starting sync .....");
 			_log._debug(opts);
 			bl.source._stream(opts, (err, stream) => {
 				if (err) {
@@ -91,13 +91,13 @@ function run_sync_stream(collection, stream, cb) {
 					stream.close();
 					return cb(null, "restart");
 				} else {
-					stream.resume();
 					_log._debug("Stream operationType [" + change.operationType + "] with id [" + change.documentKey._id + "]", "succeeded with status code", response.statusCode);
 					bl.token.save(change._id, collection.s.dbName + "_" + collection.s.colName + "_TOKEN_ID", (err) => {
 						if (err) {
 							_log._error('Error sync:', err.message);
 						}
 					});
+					stream.resume();
 				}
 			});
 		} else if (upsert.includes(change.operationType)) {
@@ -112,13 +112,13 @@ function run_sync_stream(collection, stream, cb) {
 					stream.close();
 					return cb(null, "restart");
 				} else {
-					stream.resume();
 					_log._debug("Stream operationType [" + change.operationType + "] with id [" + change.documentKey._id + "]", "succeeded with status code", response.statusCode);
 					bl.token.save(change._id, collection.s.dbName + "_" + collection.s.colName + "_TOKEN_ID", (err) => {
 						if (err) {
 							_log._error('Error sync:', err.message);
 						}
 					});
+					stream.resume();
 				}
 			});
 		} else {
@@ -173,7 +173,7 @@ function get_copy_stream(collection, cb) {
 					return cb(new Error("Cannot copy collection without ops time"));
 				}
 				opts.time = time;
-				_log._debug("Starting copy from: " + collection.s.dbName + " " + collection.s.colName, "To: " + collection.d.dbName + " " + collection.d.colName);
+				_log._info("Starting copy from: " + collection.s.dbName + " " + collection.s.colName, "To: " + collection.d.dbName + " " + collection.d.colName);
 				bl.source._clone_count(opts, (err, count) => {
 					if (err) {
 						return cb(err, null);
@@ -206,11 +206,11 @@ function run_copy_stream(collection, stream, count, cb) {
 				return cb(null, "restart");
 			}
 			_log._debug("Copy doc with id [" + data._id + "]", "succeeded with status code", response.statusCode);
-			stream.resume();
 			++counter;
 			if (count === counter) {
 				_log._info("Copy success for " + collection.d.dbName + "." + collection.d.colName + ": " + count + " of " + counter);
 			}
+			stream.resume();
 		});
 	});
 	stream.on("error", function (err) {
