@@ -26,23 +26,28 @@ const upsert = ["insert", "update", "replace"];
 const Timestamp = require('mongodb').Timestamp;
 const bl = require("./bl/index.js");
 
+let globalTime = null;
+
 function get_time(cb) {
 	if (mongo_opsTime === "0") {
 		return cb(null, null);
 	} else if (mongo_opsTime === "1") {
-		const today = new Date();
-		const yesterday = new Date(today);
-		yesterday.setDate(yesterday.getDate() - 1);
-		let month = '' + (yesterday.getMonth() + 1);
-		let day = '' + yesterday.getDate();
-		let year = yesterday.getFullYear();
-		if (month.length < 2) {
-			month = '0' + month;
+		if (!globalTime) {
+			const today = new Date();
+			const yesterday = new Date(today);
+			yesterday.setDate(yesterday.getDate() - 1);
+			let month = '' + (yesterday.getMonth() + 1);
+			let day = '' + yesterday.getDate();
+			let year = yesterday.getFullYear();
+			if (month.length < 2) {
+				month = '0' + month;
+			}
+			if (day.length < 2) {
+				day = '0' + day;
+			}
+			globalTime = [year, month, day].join('-');
 		}
-		if (day.length < 2) {
-			day = '0' + day;
-		}
-		return cb(null, [year, month, day].join('-'));
+		return cb(null, globalTime);
 	} else if (mongo_opsTime === "2") {
 		return cb(null, options.firstOpTime);
 	}
