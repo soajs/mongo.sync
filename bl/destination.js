@@ -52,6 +52,21 @@ let bl = {
 		} else {
 			return cb(new Error("Unable to find mongo client!"));
 		}
+	},
+	"_drop": (opts, cb) => {
+		if (bl.mongoClient) {
+			bl.mongoClient.getCol(opts, (err, col) => {
+				if (err) {
+					return cb(err);
+				} else {
+					col.drop(null, (err, result) => {
+						return cb(err, result);
+					})
+				}
+			});
+		} else {
+			return cb(new Error("Unable to find mongo client!"));
+		}
 	}
 };
 

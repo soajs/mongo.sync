@@ -65,7 +65,7 @@ function get_sync_stream(collection, cb) {
 			} else if (time) {
 				opts.time = new Timestamp(1, new Date(time).getTime() / 1000);
 			}
-			_log._info("Starting sync .....");
+			_log._info("Starting sync from: " + collection.s.dbName + " " + collection.s.colName, "To: " + collection.d.dbName + " " + collection.d.colName);
 			_log._debug(opts);
 			bl.source._stream(opts, (err, stream) => {
 				if (err) {
@@ -237,16 +237,30 @@ function execute_copy(collection, cb) {
 			if (!stream) {
 				return cb();
 			}
-			run_copy_stream(collection, stream, count, (err, action) => {
-				if (err) {
-					_log._error('Error copy:', err.message);
-				}
-				if (action === "restart") {
-					execute_copy(collection);
-				} else {
-					return cb();
-				}
-			});
+			
+			let _continue = () => {
+				run_copy_stream(collection, stream, count, (err, action) => {
+					if (err) {
+						_log._error('Error copy:', err.message);
+					}
+					if (action === "restart") {
+						execute_copy(collection);
+					} else {
+						return cb();
+					}
+				});
+			};
+			
+			if (collection.drop) {
+				bl.destination._drop({
+					"colName": collection.d.colName,
+					"dbName": collection.d.dbName
+				}, () => {
+					_continue();
+				})
+			} else {
+				_continue();
+			}
 		}
 	});
 }

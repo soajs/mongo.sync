@@ -23,6 +23,7 @@ module.exports = {
 	"collections": [
 		{
 			"copy": true, // if first sync copy all date prior to firstOpTime then turn on sync from that date
+			"drop": true, // drop collection at destination before copying
 			"s": {
 				"dbName": "core_provision",
 				"colName": "custom_registry"
