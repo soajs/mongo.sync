@@ -14,7 +14,7 @@ jobs:
     - grunt
 
   - stage: Publish to npm
-    if: branch = master
+    if: branch =~ /(release)/
     script:
     - echo "PUBLISH npm"
     deploy:
@@ -25,8 +25,8 @@ jobs:
         all_branches: true
         condition: $TRAVIS_BRANCH = master
 
-  - stage: Tag and release
-    if: branch = master
+  - stage: Tag and release to docker registry
+    if: branch =~ /(release)/
     script:
     - echo "Tagging"
     - export PACKAGE_VERSION=$(cat package.json | grep version | head -1 | awk -Fn '{ print $2 }' | sed 's/[n:",]//g' | tr -d '[[:space:]]')
@@ -51,7 +51,6 @@ jobs:
     deploy:
       on:
         all_branches: true
-        condition: $TRAVIS_BRANCH = master
       provider: releases
       api_key: ${GIT_TOKEN}
       skip_cleanup: true
