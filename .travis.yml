@@ -40,14 +40,14 @@ jobs:
 
     - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
 
-    - docker build -t soajsorg/mongoSync .
+    - docker build -t soajsorg/mongosync .
 
     - docker images
 
-    - docker tag soajsorg/mongoSync:latest soajsorg/mongoSync:${PACKAGE_VERSION}
-    - docker tag soajsorg/mongoSync:latest soajsorg/mongoSync:${MAJOR_VERSION}.x
+    - docker tag soajsorg/mongosync:latest soajsorg/mongosync:${PACKAGE_VERSION}
+    - docker tag soajsorg/mongosync:latest soajsorg/mongosync:${MAJOR_VERSION}.x
 
-    - docker push soajsorg/mongoSync
+    - docker push soajsorg/mongosync
     deploy:
       on:
         all_branches: true
