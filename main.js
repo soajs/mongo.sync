@@ -29,9 +29,7 @@ const bl = require("./bl/index.js");
 let globalTime = null;
 
 function get_time(cb) {
-	if (mongo_opsTime === "0") {
-		return cb(null, null);
-	} else if (mongo_opsTime === "1") {
+	if (mongo_opsTime === "1") {
 		if (!globalTime) {
 			const today = new Date();
 			const yesterday = new Date(today);
@@ -50,6 +48,8 @@ function get_time(cb) {
 		return cb(null, globalTime);
 	} else if (mongo_opsTime === "2") {
 		return cb(null, options.firstOpTime);
+	} else {
+		return cb(null, null);
 	}
 }
 
