@@ -1,8 +1,8 @@
-FROM soajsorg/node
+FROM node:alpine
 
-RUN mkdir -p /opt/soajs/mongo.sync/node_modules/
-WORKDIR /opt/soajs/mongo.sync/
+WORKDIR /app
+
 COPY . .
-RUN npm install
+RUN npm ci --only=production
 
-CMD ["/bin/bash"]
+CMD [ "node" "main.js" ]

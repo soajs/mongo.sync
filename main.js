@@ -9,7 +9,7 @@
  */
 
 if (!process.env.SOAJS_MONGO_SYNC_OPTIONS) {
-	throw new Error('You must set SOAJS_MONGO_SYNC_OPTIONS environment variable to point to an options.js file');
+	throw new Error('You must set SOAJS_MONGO_SYNC_OPTIONS environment variable to be a json like options.json');
 }
 
 // 0 = turned off, 1 = start from yesterday, 2 = use time from options
@@ -17,9 +17,9 @@ let mongo_opsTime = process.env.SOAJS_MONGO_SYNC_OPSTIME || "0";
 // 0 = turned off, 1 = turned on
 let logger_debug = process.env.SOAJS_MONGO_SYNC_DEBUG || "0";
 
-const options = require(process.env.SOAJS_MONGO_SYNC_OPTIONS);
+const options = JSON.parse(process.env.SOAJS_MONGO_SYNC_OPTIONS);
 const Logger = require("./lib/logger.js");
-let _log = new Logger({"debug": logger_debug});
+let _log = new Logger({ "debug": logger_debug });
 
 const tryAfter = 60000;
 const upsert = ["insert", "update", "replace"];
@@ -223,7 +223,7 @@ function run_copy_stream(collection, stream, count, cb) {
 		stream.close();
 		return cb(null, "restart");
 	});
-	
+
 	stream.on("end", function () {
 		_log._debug("Ending copy from: " + collection.s.dbName + " " + collection.s.colName, "To: " + collection.d.dbName + " " + collection.d.colName);
 		return cb();
@@ -242,7 +242,7 @@ function execute_copy(collection, cb) {
 			if (!stream) {
 				return cb();
 			}
-			
+
 			let _continue = () => {
 				run_copy_stream(collection, stream, count, (err, action) => {
 					if (err) {
@@ -255,7 +255,7 @@ function execute_copy(collection, cb) {
 					}
 				});
 			};
-			
+
 			if (collection.drop) {
 				bl.destination._drop({
 					"colName": collection.d.colName,
