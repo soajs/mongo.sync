@@ -33,7 +33,7 @@ function get_time(cb) {
 		if (!globalTime) {
 			const today = new Date();
 			const yesterday = new Date(today);
-			yesterday.setDate(yesterday.getDate() - 1);
+			//yesterday.setDate(yesterday.getDate() - 1);
 			let month = '' + (yesterday.getMonth() + 1);
 			let day = '' + yesterday.getDate();
 			let year = yesterday.getFullYear();
