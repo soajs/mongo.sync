@@ -1,7 +1,7 @@
 {
   "name": "soajs.mongo.sync",
   "description": "Synchronize two mongo db clusters",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "SOAJS team <team@soajs.org>",
   "repository": {
     "type": "git",
