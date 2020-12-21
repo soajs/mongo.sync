@@ -72,6 +72,9 @@ function get_sync_stream(collection, cb) {
 			}
 			_log._info("Starting sync from: " + collection.s.dbName + " " + collection.s.colName, "To: " + collection.d.dbName + " " + collection.d.colName);
 			_log._debug(opts);
+			if (time) {
+				_log._debug(time);
+			}
 			bl.source._stream(opts, (err, stream) => {
 				if (err) {
 					return cb(err);
@@ -175,7 +178,8 @@ function get_copy_stream(collection, cb) {
 					"colName": collection.s.colName, "dbName": collection.s.dbName
 				};
 				if (!time) {
-					return cb(new Error("Cannot copy collection without ops time"));
+					_log._info("Cannot copy collection without ops time, skipping copying");
+					return cb(null, null);
 				}
 				opts.time = time;
 				_log._info("Starting copy from: " + collection.s.dbName + " " + collection.s.colName, "To: " + collection.d.dbName + " " + collection.d.colName);
