@@ -70,6 +70,10 @@ function get_sync_stream(collection, cb) {
 			} else if (time) {
 				opts.time = new Timestamp(1, new Date(time).getTime() / 1000);
 			}
+			if (collection.skip_resume) {
+				delete opts.time;
+				delete opts.token;
+			}
 			_log._info("Starting sync from: " + collection.s.dbName + " " + collection.s.colName, "To: " + collection.d.dbName + " " + collection.d.colName);
 			_log._debug(opts);
 			if (time) {
@@ -97,12 +101,12 @@ function run_sync_stream(collection, stream, cb) {
 				if (error) {
 					_log._error('Error sync:', "Stream operationType [" + change.operationType + "] id [" + change.documentKey._id + "] failed with error: ", error.message);
 					stream.close();
-					return cb(null, "restart");
+					return cb(null, "restart", false);
 				} else {
 					_log._debug("Stream operationType [" + change.operationType + "] with id [" + change.documentKey._id + "]", "succeeded with status code", response.statusCode);
 					bl.token.save(change._id, collection.s.dbName + "_" + collection.s.colName + "_TOKEN_ID", (err) => {
 						if (err) {
-							_log._error('Error sync:', err.message);
+							_log._error('Error save token sync:', err.message);
 						}
 					});
 					stream.resume();
@@ -118,12 +122,12 @@ function run_sync_stream(collection, stream, cb) {
 				if (error) {
 					_log._error('Error sync:', "Stream operationType [" + change.operationType + "] id [" + change.documentKey._id + "] failed with error: ", error.message);
 					stream.close();
-					return cb(null, "restart");
+					return cb(null, "restart", false);
 				} else {
 					_log._debug("Stream operationType [" + change.operationType + "] with id [" + change.documentKey._id + "]", "succeeded with status code", response.statusCode);
 					bl.token.save(change._id, collection.s.dbName + "_" + collection.s.colName + "_TOKEN_ID", (err) => {
 						if (err) {
-							_log._error('Error sync:', err.message);
+							_log._error('Error save token sync:', err.message);
 						}
 					});
 					stream.resume();
@@ -135,26 +139,33 @@ function run_sync_stream(collection, stream, cb) {
 		}
 	});
 	stream.on("error", error => {
-		_log._error('Error sync:', error.message);
+		_log._error('Error on stream sync:', error.message);
 		stream.close();
-		return cb(null, "restart");
+		let skip_resume = false;
+		if (error.message.indexOf("resume point may no longer be in the oplog") !== -1) {
+			skip_resume = true;
+		}
+		return cb(null, "restart", skip_resume);
 	});
 }
 
 function execute_sync(collection) {
 	get_sync_stream(collection, (err, stream) => {
 		if (err) {
-			_log._error('Error sync:', err.message);
+			_log._error('Error get sync:', err.message);
 			_log._info("Will try to execute sync again after " + tryAfter + " ms");
 			setTimeout(() => {
 				execute_sync(collection);
 			}, tryAfter);
 		} else {
-			run_sync_stream(collection, stream, (err, action) => {
+			run_sync_stream(collection, stream, (err, action, skip_resume) => {
 				if (err) {
-					_log._error('Error sync:', err.message);
+					_log._error('Error run sync:', err.message);
 				}
 				if (action === "restart") {
+					if (skip_resume) {
+						collection.skip_resume = skip_resume;
+					}
 					execute_sync(collection);
 				}
 			});
